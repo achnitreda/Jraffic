@@ -15,9 +15,9 @@ import java.util.ArrayList;
 public class TrafficIntersectionSimulation extends Application {
     private static final int WINDOW_WIDTH = 1000;
     private static final int WINDOW_HEIGHT = 800;
-    private static final int VEHICLE_SIZE = 50;
+    private static final int VEHICLE_SIZE = 35; 
     private static final double VEHICLE_SPEED = 120.0; // pixels per second
-    private static final int SAFE_DISTANCE = 60;
+    private static final int SAFE_DISTANCE = 50;
     
     // Intersection boundaries
     private static final int INTERSECTION_LEFT = 425;
@@ -124,8 +124,8 @@ public class TrafficIntersectionSimulation extends Application {
         }
         
         public boolean isInIntersection() {
-            return x >= INTERSECTION_LEFT && x <= INTERSECTION_RIGHT && 
-                   y >= INTERSECTION_TOP && y <= INTERSECTION_BOTTOM;
+            return x >= INTERSECTION_LEFT - 10 && x <= INTERSECTION_RIGHT + 10 && 
+                   y >= INTERSECTION_TOP - 10 && y <= INTERSECTION_BOTTOM + 10;
         }
         
         public void draw(GraphicsContext gc) {
@@ -145,26 +145,59 @@ public class TrafficIntersectionSimulation extends Application {
 
     public static class TrafficSystem {
         private Direction currentPhase;
+        private double phaseTimer;
+        private double clearanceTimer;
+        private boolean inClearancePhase;
+        
+        private static final double MIN_PHASE_DURATION = 2.0; // Minimum 2 seconds per phase
+        private static final double CLEARANCE_DURATION = 1.0; // 1 second clearance time
 
         public TrafficSystem() {
             this.currentPhase = Direction.UP;
+            this.phaseTimer = 0.0;
+            this.clearanceTimer = 0.0;
+            this.inClearancePhase = false;
         }
 
         public void update(List<Vehicle> vehicles, double deltaTime) {
-            // PURE congestion-based switching - only safety constraint is clear intersection
-            if (isIntersectionClear(vehicles)) {
+            phaseTimer += deltaTime;
+            
+            if (inClearancePhase) {
+                clearanceTimer += deltaTime;
+                // During clearance, no new vehicles can enter intersection
+                if (clearanceTimer >= CLEARANCE_DURATION && isIntersectionClear(vehicles)) {
+                    // Clearance complete, switch to new phase
+                    inClearancePhase = false;
+                    clearanceTimer = 0.0;
+                    phaseTimer = 0.0;
+                    System.out.println("Phase switched to: " + currentPhase);
+                }
+                return;
+            }
+            
+            // Only consider switching if minimum phase duration has passed
+            if (phaseTimer >= MIN_PHASE_DURATION) {
                 Direction bestPhase = findBestPhase(vehicles);
                 
-                // Switch immediately if another direction has more congestion
-                if (bestPhase != currentPhase && hasWaitingVehicles(vehicles, bestPhase)) {
-                    // Only switch if current phase has no waiting vehicles or other phase has more
-                    System.out.println(getQueueCount(vehicles, bestPhase) + " vs " + getQueueCount(vehicles, currentPhase));
-                    if (!hasWaitingVehicles(vehicles, currentPhase) || 
-                        getQueueCount(vehicles, bestPhase) > getQueueCount(vehicles, currentPhase)) {
-                        currentPhase = bestPhase;
-                    }
+                // Switch if another direction has significantly more congestion
+                if (bestPhase != currentPhase && shouldSwitchPhase(vehicles, bestPhase)) {
+                    System.out.println("Initiating phase switch from " + currentPhase + " to " + bestPhase);
+                    currentPhase = bestPhase;
+                    inClearancePhase = true;
+                    clearanceTimer = 0.0;
                 }
             }
+        }
+        
+        private boolean shouldSwitchPhase(List<Vehicle> vehicles, Direction newPhase) {
+            int currentQueueCount = getQueueCount(vehicles, currentPhase);
+            int newQueueCount = getQueueCount(vehicles, newPhase);
+            
+            // Switch if:
+            // 1. Current phase has no waiting vehicles, OR
+            // 2. New phase has at least 2 more vehicles waiting than current phase
+            return (!hasWaitingVehicles(vehicles, currentPhase)) || 
+                   (newQueueCount >= currentQueueCount + 2);
         }
 
         private int getQueueCount(List<Vehicle> vehicles, Direction direction) {
@@ -191,7 +224,6 @@ public class TrafficIntersectionSimulation extends Application {
                 }
             }
 
-            // Find direction with most waiting vehicles
             int maxQueue = 0;
             Direction bestPhase = currentPhase;
             
@@ -206,6 +238,11 @@ public class TrafficIntersectionSimulation extends Application {
         }
 
         public boolean canVehicleProceed(Vehicle vehicle) {
+            // During clearance phase, no vehicles can enter intersection
+            if (inClearancePhase && vehicle.isApproachingIntersection() && !vehicle.isInIntersection()) {
+                return false;
+            }
+            
             return vehicle.isInIntersection() || 
                    !vehicle.isApproachingIntersection() || 
                    vehicle.getDirection() == currentPhase;
@@ -213,6 +250,12 @@ public class TrafficIntersectionSimulation extends Application {
 
         public Color[] getLightColors() {
             Color[] colors = {Color.RED, Color.RED, Color.RED, Color.RED};
+            
+            if (inClearancePhase) {
+                // All lights red during clearance
+                return colors;
+            }
+            
             colors[currentPhase.ordinal()] = Color.LIME;
             return colors;
         }
@@ -239,9 +282,8 @@ public class TrafficIntersectionSimulation extends Application {
         primaryStage.setResizable(false);
         primaryStage.show();
         
-        // ??
-        // canvas.setFocusTraversable(true);
-        // canvas.requestFocus();
+        canvas.setFocusTraversable(true);
+        canvas.requestFocus();
         
         AnimationTimer gameLoop = new AnimationTimer() {
             @Override
@@ -300,7 +342,7 @@ public class TrafficIntersectionSimulation extends Application {
                 case RIGHT -> Math.abs(vehicle.getX() - spawnX);
             };
             
-            return distance < 100; // Safe spawn distance
+            return distance < 80; // Safe spawn distance
         });
     }
     
@@ -321,8 +363,8 @@ public class TrafficIntersectionSimulation extends Application {
     
     private boolean isSameLane(Vehicle v1, Vehicle v2) {
         return switch (v1.getDirection()) {
-            case UP, DOWN -> Math.abs(v1.getX() - v2.getX()) < 30;
-            case LEFT, RIGHT -> Math.abs(v1.getY() - v2.getY()) < 30;
+            case UP, DOWN -> Math.abs(v1.getX() - v2.getX()) < 25; 
+            case LEFT, RIGHT -> Math.abs(v1.getY() - v2.getY()) < 25;
         };
     }
     
