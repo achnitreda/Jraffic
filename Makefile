@@ -3,7 +3,7 @@ MAIN_CLASS = TrafficIntersectionSimulation
 
 run:
 	@echo "🔨 Building and running $(MAIN_CLASS)..."
-	@javac -p $(JAVAFX_PATH) -d Build --add-modules javafx.controls $(MAIN_CLASS).java
+	@javac -p $(JAVAFX_PATH) -d Build --add-modules javafx.controls src/*.java
 	@java -p $(JAVAFX_PATH) -cp Build --add-modules javafx.controls $(MAIN_CLASS)
 
 clean:
