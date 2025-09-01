@@ -29,11 +29,9 @@ public class TrafficSystem {
             clearanceTimer += deltaTime;
             // During clearance, no new vehicles can enter intersection
             if (clearanceTimer >= CLEARANCE_DURATION && isIntersectionClear(vehicles)) {
-                // Clearance complete, switch to new phase
                 inClearancePhase = false;
                 clearanceTimer = 0.0;
                 phaseTimer = 0.0;
-                System.out.println("Phase switched to: " + currentPhase);
             }
             return;
         }
@@ -44,7 +42,6 @@ public class TrafficSystem {
 
             // Switch if another direction has significantly more congestion
             if (bestPhase != currentPhase && shouldSwitchPhase(vehicles, bestPhase)) {
-                System.out.println("Initiating phase switch from " + currentPhase + " to " + bestPhase);
                 currentPhase = bestPhase;
                 inClearancePhase = true;
                 clearanceTimer = 0.0;
@@ -55,22 +52,19 @@ public class TrafficSystem {
     private boolean shouldSwitchPhase(List<Vehicle> vehicles, Direction newPhase) {
         int currentQueueCount = getQueueCount(vehicles, currentPhase);
         int newQueueCount = getQueueCount(vehicles, newPhase);
-
-        // Switch if:
-        // 1. Current phase has no waiting vehicles, OR
-        // 2. New phase has at least 2 more vehicles waiting than current phase
+        
         return (!hasWaitingVehicles(vehicles, currentPhase)) ||
-                (newQueueCount >= currentQueueCount + 2);
+                (newQueueCount >= currentQueueCount);
     }
 
     private int getQueueCount(List<Vehicle> vehicles, Direction direction) {
         return (int) vehicles.stream()
-                .filter(v -> v.getDirection() == direction && v.isApproachingIntersection())
+                .filter(v -> v.getDirection() == direction && v.isInQueue())
                 .count();
     }
 
     private boolean hasWaitingVehicles(List<Vehicle> vehicles, Direction direction) {
-        return vehicles.stream().anyMatch(v -> v.getDirection() == direction && v.isApproachingIntersection());
+        return vehicles.stream().anyMatch(v -> v.getDirection() == direction && v.isInQueue());
     }
 
     private boolean isIntersectionClear(List<Vehicle> vehicles) {
@@ -81,7 +75,7 @@ public class TrafficSystem {
         var queueCounts = new HashMap<Integer, Integer>();
 
         for (Vehicle vehicle : vehicles) {
-            if (vehicle.isApproachingIntersection()) {
+            if (vehicle.isInQueue()) {
                 var key = vehicle.getDirection().ordinal();
                 queueCounts.put(key, (queueCounts.getOrDefault(key, 0)) + 1);
             }
@@ -103,7 +97,7 @@ public class TrafficSystem {
     }
 
     public boolean canVehicleProceed(Vehicle vehicle) {
-        // During clearance phase, no vehicles can enter intersection
+        // During clearance, if a vehicle is approaching BUT not already in the intersection, STOP IT.
         if (inClearancePhase && vehicle.isApproachingIntersection() && !vehicle.isInIntersection()) {
             return false;
         }
@@ -117,7 +111,6 @@ public class TrafficSystem {
         Color[] colors = { Color.RED, Color.RED, Color.RED, Color.RED };
 
         if (inClearancePhase) {
-            // All lights red during clearance
             return colors;
         }
 

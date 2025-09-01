@@ -42,6 +42,7 @@ public class TrafficIntersectionSimulation extends Application {
         primaryStage.show();
 
         AnimationTimer gameLoop = new AnimationTimer() {
+            @Override
             public void handle(long now) {
                 double deltaTime = (now - lastUpdateTime) / 1_000_000_000.0;
                 lastUpdateTime = now;
@@ -56,7 +57,7 @@ public class TrafficIntersectionSimulation extends Application {
 
     private void handleKeyPress(KeyCode keyCode) {
         switch (keyCode) {
-            case UP -> spawnVehicle(515, 800 - 35, Direction.UP);
+            case UP -> spawnVehicle(515, 700, Direction.UP);
             case DOWN -> spawnVehicle(440, 0, Direction.DOWN);
             case LEFT -> spawnVehicle(950, 335, Direction.LEFT);
             case RIGHT -> spawnVehicle(10, 415, Direction.RIGHT);
@@ -154,12 +155,36 @@ public class TrafficIntersectionSimulation extends Application {
 
         drawRoads();
         drawTrafficLights();
+        // drawDetectionZones();
 
         for (Vehicle vehicle : vehicles) {
             vehicle.draw(gc);
         }
 
         drawInstructions();
+    }
+
+    // for debugging
+    private void drawDetectionZones() {
+        gc.setStroke(Color.YELLOW);
+        gc.setLineWidth(3);
+        
+        // // UP detection line
+        // gc.strokeLine(425, 500, 575, 500);
+        // gc.strokeLine(425, 550, 575, 550);
+        
+        // DOWN detection line
+        // gc.strokeLine(425, 250, 575, 250);
+        // gc.strokeLine(425, 300, 575, 300);
+        
+        // // // LEFT detection line (x = 550)
+        // gc.strokeLine(600, 325, 600, 475);
+        // gc.strokeLine(650, 325, 650, 475);
+        
+        // // // RIGHT detection line (x = 400)
+        // gc.strokeLine(350, 325, 350, 475);
+        // gc.strokeLine(400, 325, 400, 475);
+
     }
 
     private void drawRoads() {
