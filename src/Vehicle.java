@@ -66,7 +66,7 @@ public class Vehicle {
     private void turnLeft(double movement) {
         switch (direction) {
             case UP -> {
-                if (y <= 340)
+                if (y <= 350)
                     x -= movement;
                 else
                     y -= movement;
@@ -78,7 +78,7 @@ public class Vehicle {
                     y += movement;
             }
             case LEFT -> {
-                if (x >= 440)
+                if (x >= 450)
                     x -= movement;
                 else
                     y += movement;
