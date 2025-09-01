@@ -107,9 +107,9 @@ public class Vehicle {
 
     public boolean isInQueue() {
         return switch (direction) {
-            case UP -> y <= 700 && y >= 500;
+            case UP -> y <= 700 && y >= 450;
             case DOWN -> y >= 100 && y <= 300;
-            case LEFT -> x <= 800 && x >= 600;
+            case LEFT -> x <= 800 && x >= 550;
             case RIGHT -> x >= 200 && x <= 400;
         };
     }
